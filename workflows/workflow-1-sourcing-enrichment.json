@@ -1,0 +1,331 @@
+{
+  "name": "Full-Lifecycle B2B Email Outreach Engine with Automated State Management & Instant Alerts (Workflow 1)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Sourcing Engine (Extract Domains & Names)",
+        "height": 448,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "2d5dbfbf-1225-4edf-802f-c8aab809a799",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Enrichment (Find Verified Contact Emails)",
+        "height": 320,
+        "width": 336,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        320,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "feb36110-bf76-4361-b89e-3e1fe0d2f338",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Database Logging (Push to Notion)",
+        "height": 240,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "9cde7ed7-211d-493c-8ef2-37f53282bf38",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -160
+      ],
+      "id": "4612d092-f55d-48e7-944a-4b0598b8312b",
+      "name": "Manual Trigger (Initiate Sourcing)"
+    },
+    {
+      "parameters": {
+        "q": "site:techcrunch.com/author/ \"Internet of Things\"",
+        "additionalFields": {
+          "num": "3"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -48
+      ],
+      "id": "daf6b7c1-5e20-4290-b932-4416884dbf7b",
+      "name": "Google SerpAPI (Extract Publication Data)",
+      "credentials": {
+        "serpApi": {
+          "id": "REPLACE_ME",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=organic_results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -48
+      ],
+      "id": "e4560ace-ad64-4d2f-8641-6daf60c912c8",
+      "name": "Itemizer (Extract List to Row Objects)"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  let link = item.json.link || \"\";\n  let rawTitle = item.json.title || \"\";\n  \n  let cleanName = \"\";\n  let domainName = \"techcrunch.com\";\n\n  // 1. Ekstraksi Domain dari URL\n  try {\n    let url = new URL(link);\n    domainName = url.hostname.replace('www.', '');\n    \n    // 2. Trik Cerdas: Jika ini halaman author, ambil nama dari URL Slug!\n    if (link.includes(\"/author/\")) {\n      // Memotong URL berdasarkan tanda garis miring (/)\n      let pathParts = url.pathname.split('/').filter(Boolean); // Contoh: ['author', 'klint-finley']\n      if (pathParts.length >= 2 && pathParts[0] === 'author') {\n        let slugName = pathParts[1]; // Hasil: 'klint-finley'\n        // Mengubah 'klint-finley' menjadi 'Klint Finley'\n        cleanName = slugName\n          .split('-')\n          .map(word => word.charAt(0).toUpperCase() + word.slice(1))\n          .join(' ');\n      }\n    }\n  } catch (e) {\n    // Jalur alternatif jika URL gagal diproses\n  }\n\n  // 3. Jalur Cadangan (Fallback): Jika bukan halaman author, gunakan metode potong judul kemarin\n  if (!cleanName && rawTitle.includes(\",\")) {\n    cleanName = rawTitle.split(\",\")[0].trim();\n  } else if (!cleanName) {\n    cleanName = \"TechCrunch Contributor\"; // Nama default jika benar-benar tidak ditemukan\n  }\n\n  // Masukkan hasil ke variabel baru\n  item.json.target_name = cleanName;\n  item.json.target_domain = domainName;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -176
+      ],
+      "id": "c0e7a6a1-05bb-43f4-b06a-6b8f5a959cfb",
+      "name": "S Processor (Normalize Names & Domains)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3005/v1/people/match",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "mock-key-12345-apollo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.target_name }}\",\n  \"domain\": \"{{ $json.target_domain }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -112
+      ],
+      "id": "ca745eae-9bae-4d95-bf5b-1ade01e762c8",
+      "name": "Apollo REST API (Fetch Verified Email Contacts)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b08ca020-5b81-4502-9ed7-71184cee28d8",
+              "name": "jurnalis_name",
+              "value": "={{ $json.person.name }}",
+              "type": "string"
+            },
+            {
+              "id": "ccabfc2c-7f64-43fc-b470-23d1239597a9",
+              "name": "email",
+              "value": "={{ $json.person.email }}",
+              "type": "string"
+            },
+            {
+              "id": "ae4a65b9-c062-41b5-81ec-95a39301d950",
+              "name": "company",
+              "value": "={{ $json.person.organization.name }}",
+              "type": "string"
+            },
+            {
+              "id": "43db88ec-ff64-4934-9416-9a6ff459da3d",
+              "name": "linkedin",
+              "value": "={{ $json.person.linkedin_url }}",
+              "type": "string"
+            },
+            {
+              "id": "6581ffa7-0699-4fee-aab7-9eec3dbab814",
+              "name": "article_link",
+              "value": "={{ $('S Processor (Normalize Names & Domains)').item.json.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -112
+      ],
+      "id": "0b0f4502-7737-4bf9-84b0-8966a2d6aa63",
+      "name": "Data Mapper (Align with Notion Schema)"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "36e5a867-115b-80e1-8a69-c886b301face",
+          "mode": "list",
+          "cachedResultName": "Database Schema",
+          "cachedResultUrl": "https://app.notion.com/p/00000000000000000000000000000000"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Nama Jurnalis|title",
+              "title": "={{ $json.jurnalis_name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Perusahaan|rich_text",
+              "textContent": "={{ $json.company }}"
+            },
+            {
+              "key": "LinkedIn|url",
+              "urlValue": "={{ $json.linkedin }}"
+            },
+            {
+              "key": "Artikel Referensi|url",
+              "urlValue": "={{ $json.article_link }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        -96
+      ],
+      "id": "d94b5455-0816-4180-b548-85ed974c2b52",
+      "name": "Notion CRM (Log Target Leads)",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Notes\nSystem Input Payload:\n\nQuery Type: Target Media / Publications\n\nTarget Output: Clean Data Rows (Name, Domain, Checked Status)\n\nArchitectural Highlights:\n\nOptimized JSON flattening to minimize memory footprint during high-concurrency loops.\n\nDynamic data mapper ensuring strict compatibility with Notion DB schemas.",
+        "height": 176,
+        "width": 272,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        448,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "381e14b5-3cec-4a23-9366-4db61e39002c",
+      "name": "Sticky Note3"
+    }
+  ],
+  "connections": {
+    "Manual Trigger (Initiate Sourcing)": {
+      "main": [
+        [
+          {
+            "node": "Google SerpAPI (Extract Publication Data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google SerpAPI (Extract Publication Data)": {
+      "main": [
+        [
+          {
+            "node": "Itemizer (Extract List to Row Objects)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Itemizer (Extract List to Row Objects)": {
+      "main": [
+        [
+          {
+            "node": "S Processor (Normalize Names & Domains)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S Processor (Normalize Names & Domains)": {
+      "main": [
+        [
+          {
+            "node": "Apollo REST API (Fetch Verified Email Contacts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo REST API (Fetch Verified Email Contacts)": {
+      "main": [
+        [
+          {
+            "node": "Data Mapper (Align with Notion Schema)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Mapper (Align with Notion Schema)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Log Target Leads)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "active": false
+}

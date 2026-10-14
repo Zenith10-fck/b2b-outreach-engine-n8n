@@ -1,0 +1,309 @@
+{
+  "name": "Full-Lifecycle B2B Email Outreach Engine with Automated State Management & Instant Alerts (Workflow 2)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Ingestion Layer (Trigger & Scrape)",
+        "height": 400,
+        "width": 464,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "00b1cfa8-c4b1-4573-aad1-d66dc8538ae6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "The Brain (Synthesize Pitch via LLM)",
+        "height": 400,
+        "width": 416
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "a681c468-e560-4dd3-8f83-39354a796d0e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Output (Update DB Status to Draft Ready)",
+        "height": 240,
+        "width": 272,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        560,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "a85b5747-c436-4653-83b6-7baf5e043ffd",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "databaseId": {
+          "__rl": true,
+          "value": "36e5a867-115b-80e1-8a69-c886b301face",
+          "mode": "list",
+          "cachedResultName": "Database Schema",
+          "cachedResultUrl": "https://www.notion.so/00000000000000000000000000000000"
+        }
+      },
+      "type": "n8n-nodes-base.notionTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -64
+      ],
+      "id": "43201ad0-d3ad-48a7-8d34-9822287f8032",
+      "name": "Notion Trigger (On Status: Approved)",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "scrape",
+        "url": "={{ $json['Artikel Referensi'] }}",
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -160
+      ],
+      "id": "62a35c00-7228-4834-945c-06c54503afe8",
+      "name": "Firecrawl API (Deep Context Extraction)",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "REPLACE_ME",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "google_news",
+        "q": "Internet of Things trends",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        48
+      ],
+      "id": "45af2e01-b945-4251-b6e1-19ef0acf40dd",
+      "name": "SerpAPI (Extract Real-Time News Trends)",
+      "credentials": {
+        "serpApi": {
+          "id": "REPLACE_ME",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        160,
+        -80
+      ],
+      "id": "ec822e53-4fd8-4192-afed-cac44f07e89e",
+      "name": "Context Aggregator (Merge Scraped Data)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=**SYSTEM PROMPT:**\nYou are an elite B2B PR & Media Outreach Specialist drafting an email ON BEHALF of your client, [CLIENT NAME]. The email must be written in the FIRST PERSON perspective (\"I\", \"my\") as if [CLIENT NAME] is directly writing to the podcast host/editor.\n\n**STRICT GUARDRAILS:**\n- NO fluff (e.g., \"I hope this finds you well\", \"Hope you're having a great day\").\n- NO emojis. NO corporate jargon.\n- Tone: Conversational, peer-to-peer, authoritative yet humble.\n- Length: STRICTLY under 120 words. Punchy and scannable.\n- Output ONLY the Subject Line and the Email Body.\n\n**CLIENT BACKGROUND ([CLIENT NAME] - The Sender):**\n[CLIENT BACKGROUND: years of experience, frameworks, industry specialization]\n\n**DATA INPUTS:**\nTarget Name: {{ $('Notion Trigger (On Status: Approved)').first().json[\"Target Name\"] }}\nTarget Company: {{ $('Notion Trigger (On Status: Approved)').first().json[\"Company/Podcast\"] }}\n\nTarget Context (Scraped from Article/Podcast):\n{{ $('Firecrawl API (Deep Context Extraction)').first().json.data.markdown }}\n\nCurrent Industry Trends (Scraped from Google News):\n- Title: {{ $('SerpAPI (Extract Real-Time News Trends)').first().json.news_results[0].title }}\n\n**THE PITCH FRAMEWORK (Follow this exact structure):**\n1. Hook: 1 sentence praising a specific detail from the [Target Context].\n2. The Bridge: 1 sentence connecting the [Target Context] to the [Current Industry Trends].\n3. The Value (Why Me): 1 sentence introducing [CLIENT NAME]'s relevant experience as the exact solution to navigate that trend.\n4. Soft CTA: 1 sentence asking if they are open to discussing this for an upcoming piece/episode.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -128
+      ],
+      "id": "75dfee22-5028-4478-ab0c-d43cd119dcd1",
+      "name": "AI Pitch Synthesizer (Advanced Agent)",
+      "executeOnce": true,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        288,
+        48
+      ],
+      "id": "fbed5ea5-dc66-42a1-b879-0b2522f4a37b",
+      "name": "Gemini Core Model (Deterministic Engine)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_ME",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Notion Trigger (On Status: Approved)').item.json.id }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Draft Email|rich_text",
+              "textContent": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -112
+      ],
+      "id": "46087484-bcb0-4c62-9ff9-8445f8f1756a",
+      "name": "Notion CRM (Inject AI Generated Copy)",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Notes\nData Synthesis Metrics:\n\nContext Enrichment: Parallel crawling via Firecrawl & Google News (SerpAPI).\n\nPrompt Design: Deterministic system messages to enforce rigid copywriting frameworks.",
+        "height": 192,
+        "width": 304,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        432,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "1155d8d6-c5d1-47ca-939e-084de9e5955e",
+      "name": "Sticky Note3"
+    }
+  ],
+  "connections": {
+    "Notion Trigger (On Status: Approved)": {
+      "main": [
+        [
+          {
+            "node": "Firecrawl API (Deep Context Extraction)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SerpAPI (Extract Real-Time News Trends)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firecrawl API (Deep Context Extraction)": {
+      "main": [
+        [
+          {
+            "node": "Context Aggregator (Merge Scraped Data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI (Extract Real-Time News Trends)": {
+      "main": [
+        [
+          {
+            "node": "Context Aggregator (Merge Scraped Data)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Context Aggregator (Merge Scraped Data)": {
+      "main": [
+        [
+          {
+            "node": "AI Pitch Synthesizer (Advanced Agent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Pitch Synthesizer (Advanced Agent)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Inject AI Generated Copy)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Core Model (Deterministic Engine)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Pitch Synthesizer (Advanced Agent)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "active": false
+}

@@ -1,0 +1,421 @@
+{
+  "name": "Full-Lifecycle B2B Email Outreach Engine with Automated State Management & Instant Alerts (Workflow 3A)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Queue Ingestion Layer",
+        "height": 304,
+        "width": 336,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "bbee1ca4-4431-4977-a71b-8f078fdef698",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Throttling & Guardrail Controller",
+        "height": 352,
+        "width": 608,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "c42c013c-2866-401d-89ba-d202ca0486b7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Execution & Thread Anchoring Layer",
+        "height": 400,
+        "width": 512
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        800,
+        -320
+      ],
+      "typeVersion": 1,
+      "id": "c94bfa02-3c54-4a79-af53-32aecd79e863",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": {},
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        -144
+      ],
+      "id": "a5c549e1-461e-4e8a-9d26-c8bbcd4ac8c0",
+      "name": "Cron Trigger (Daily Batch Fetch)"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "36e5a867-115b-80e1-8a69-c886b301face",
+          "mode": "list",
+          "cachedResultName": "Database Schema",
+          "cachedResultUrl": "https://app.notion.com/p/00000000000000000000000000000000"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Send Approved"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        -144
+      ],
+      "id": "de775d63-5919-465e-a0ad-3ed54c9e22bf",
+      "name": "Notion CRM (Fetch Approved Leads)",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "96f25321-e283-4d20-bf3b-fe4f8daa0813",
+              "leftValue": "={{ $json.property_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        -160
+      ],
+      "id": "87cd5d04-f38a-4416-addb-ba91db5a7e6a",
+      "name": "Logic Gate (Verify Queue Length)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        336,
+        -160
+      ],
+      "id": "7adfc07e-388b-4aeb-83f6-9c9d37a3379e",
+      "name": "Batch Itemizer (Throttling Loop)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9400be7c-3f93-4513-9b33-9a3cf7a3d0c8",
+              "leftValue": "={{ $('Notion CRM (Fetch Approved Leads)').item.json.property_sandbox_mode }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        608,
+        -192
+      ],
+      "id": "6e87776c-0e78-44ec-89c9-8d02ccb1c7e5",
+      "name": "Logic Gate (Sandbox Mode Detector)1"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -64
+      ],
+      "id": "cfbc7d9a-ba83-4d64-9db1-c979a289c645",
+      "name": "Intelligent Delayer (Anti-Blocking)"
+    },
+    {
+      "parameters": {
+        "sendTo": "you@example.com",
+        "subject": "=[SANDBOX] {{ $json.property_draft_email.split('\\n')[0].replace('Subject: ', '').trim() }}",
+        "message": "={{ $json.property_draft_email.split('\\n').slice(1).join('\\n').trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -256
+      ],
+      "id": "fd59ca8d-c283-4bc7-8b0b-0584e56cabc6",
+      "name": "Gmail API (Redirect to QC Sandbox)",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.property_email }}",
+        "subject": "={{ $json.property_draft_email.split('\\n')[0].replace('Subject: ', '').trim() }}",
+        "message": "={{ $json.property_draft_email.split('\\n').slice(1).join('\\n').trim() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "6056dc31-73e1-4fd7-95f3-7aa564405c0e",
+      "name": "Gmail API (Transmit Live Outreach)",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Batch Itemizer (Throttling Loop)').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Sent"
+            },
+            {
+              "key": "Thread Id|rich_text",
+              "textContent": "={{ $json.threadId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        -160
+      ],
+      "id": "85595461-16e7-4431-b102-364d904ab8b9",
+      "name": "Notion CRM (Lock Thread ID & Set Sent)",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Throttling Logic: Serialized item processing paired with artificial delays to prevent API rate-limiting blocks.\n\nState Synchronization: Gmail response anchors (Thread ID) are written back to the relational database in real-time to maintain communication state.",
+        "height": 176,
+        "width": 336,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        416,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "f2f19705-e908-4162-a3b0-e20fee1513bb",
+      "name": "Sticky Note3"
+    }
+  ],
+  "connections": {
+    "Cron Trigger (Daily Batch Fetch)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Fetch Approved Leads)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion CRM (Fetch Approved Leads)": {
+      "main": [
+        [
+          {
+            "node": "Logic Gate (Verify Queue Length)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logic Gate (Verify Queue Length)": {
+      "main": [
+        [
+          {
+            "node": "Batch Itemizer (Throttling Loop)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Itemizer (Throttling Loop)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Intelligent Delayer (Anti-Blocking)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logic Gate (Sandbox Mode Detector)1": {
+      "main": [
+        [
+          {
+            "node": "Gmail API (Redirect to QC Sandbox)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail API (Transmit Live Outreach)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intelligent Delayer (Anti-Blocking)": {
+      "main": [
+        [
+          {
+            "node": "Logic Gate (Sandbox Mode Detector)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail API (Redirect to QC Sandbox)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Lock Thread ID & Set Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail API (Transmit Live Outreach)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Lock Thread ID & Set Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion CRM (Lock Thread ID & Set Sent)": {
+      "main": [
+        [
+          {
+            "node": "Batch Itemizer (Throttling Loop)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "active": false
+}

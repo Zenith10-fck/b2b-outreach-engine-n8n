@@ -1,0 +1,421 @@
+{
+  "name": "Full-Lifecycle B2B Email Outreach Engine with Automated State Management & Instant Alerts (Workflow 3B)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -688,
+        -96
+      ],
+      "id": "457cf7fd-76db-49da-8a26-af050656b052",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "36e5a867-115b-80e1-8a69-c886b301face",
+          "mode": "list",
+          "cachedResultName": "Database Schema",
+          "cachedResultUrl": "https://app.notion.com/p/00000000000000000000000000000000"
+        },
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "equals",
+              "statusValue": "Sent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        -96
+      ],
+      "id": "8187745b-7377-45ed-9e2a-a6d134d150d0",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $json.property_thread_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -368,
+        -96
+      ],
+      "id": "1d89b226-18ab-41fc-b6cb-2232d5ecc6bd",
+      "name": "Get a thread",
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c37992a3-3492-4614-9a24-ae520590d474",
+              "leftValue": "={{ $json.messages.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -192,
+        -112
+      ],
+      "id": "d406a71d-6def-45c8-8485-4cbf09198d69",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "361cf7e1-5a34-45cf-a8f3-fe4fc1d334fa",
+              "leftValue": "={{ (Date.now() - parseInt($json.messages[0].internalDate)) / (1000 * 60 * 60 * 24) }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "53f94803-4f26-49a7-a223-dcae130272a8",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "content": "Target Thread Ingestion Layer",
+        "height": 272,
+        "width": 480,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -704,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "329f71df-265e-40ed-a41c-bc05a7f8723f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "State Actuator & Omnichannel Notification",
+        "height": 448,
+        "width": 512,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        208,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "0141aabf-6853-41e9-a94f-c1ae1294de3d",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Get many database pages').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "=Status|status",
+              "statusValue": "=Replied"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -192
+      ],
+      "id": "aec68412-4ac5-46b5-b822-de6478c956bf",
+      "name": "Notion CRM (Set State to 'Replied')",
+      "alwaysOutputData": false,
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=⚠️ IMPORTANT INFO: JOURNALIST REPLIES TO EMAIL!\n\nName: {{ $('Get many database pages').item.json.property_nama_jurnalis }}\nCompany: {{ $('Get many database pages').item.json.property_perusahaan }}\n\nReply Snippet:\n\"{{ $('Get a thread').item.json.messages[$('Get a thread').item.json.messages.length - 1].snippet.split(' Pada ')[0].split(' On ')[0].replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() }}\"\n\nThe status in Notion has been automatically changed to 'Replied'. Please open your Gmail immediately to respond manually for optimal output!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        -192
+      ],
+      "id": "a87acf66-6c84-47e4-a1f5-03f0d92f22fc",
+      "name": "Telegram Bot API (Dispatch Clean Snippet Alert)",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "reply",
+        "threadId": "={{ $json.id }}",
+        "messageId": "={{ $json.messages[0].id }}",
+        "message": "=Hi {{ $('Get many database pages').item.json.property_nama_jurnalis }}, just checking in case my previous email got buried.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -32
+      ],
+      "id": "469cf6b6-2700-4c0c-a92d-785de07d68b0",
+      "name": "Gmail API (Transmit Automated Follow-Up)",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_ME",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "3765a867-115b-8156-97fd-d0147b973c8f",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|status",
+              "statusValue": "Followed up"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -32
+      ],
+      "id": "dfe95499-897e-4c62-93a1-92571fb6838d",
+      "name": "Notion CRM (Set State to 'Followed-up')",
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_ME",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Asynchronous Response & Time Evaluator",
+        "height": 272,
+        "width": 368,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -208,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "0907d6fa-54d9-4ab7-9e01-29bfbaa228c7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Dynamic Array Indexing: [messages.length - 1] to locks the latest inbound raw payload.\n\nString Normalization: Automated regex-based splitting to strip email header noise and HTML entities for clean client-side visualization.",
+        "height": 176,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -624,
+        -352
+      ],
+      "typeVersion": 1,
+      "id": "b35d8675-8c92-4144-a37b-80b363d4bf9a",
+      "name": "Sticky Note3"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Get a thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a thread": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Set State to 'Replied')",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Gmail API (Transmit Automated Follow-Up)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion CRM (Set State to 'Replied')": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bot API (Dispatch Clean Snippet Alert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail API (Transmit Automated Follow-Up)": {
+      "main": [
+        [
+          {
+            "node": "Notion CRM (Set State to 'Followed-up')",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "active": false
+}
